@@ -69,7 +69,7 @@
      * 0. DATAPIPE CONFIGURATION (FOR REMOTE GOOGLE DRIVE SAVING)
      * =========================================================================
      */
-    const DATAPIPE_EXPERIMENT_ID = "bjojCS0ITd87";
+    const DATAPIPE_EXPERIMENT_ID = "YOUR_DATAPIPE_EXPERIMENT_ID";
     const DATAPIPE_ENDPOINT = "https://pipe.jspsych.org/api/data/";
 
     /**
@@ -250,7 +250,7 @@
 
       if (!DATAPIPE_EXPERIMENT_ID || DATAPIPE_EXPERIMENT_ID === "YOUR_DATAPIPE_EXPERIMENT_ID") {
         state.uploadStatus = "error";
-        state.uploadMessage = "Set DATAPIPE_EXPERIMENT_ID in the code to save directly to Kelly's Google Drive.";
+        state.uploadMessage = "Set DATAPIPE_EXPERIMENT_ID in the code to save directly to your Google Drive.";
         renderCompletionScreen();
         return;
       }
