@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kelly's Cog Sci Study</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Newsreader', Georgia, serif;
+      background-color: #F5EFE6;
+      color: #2C2621;
+    }
+    .heading-serif {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+    }
+    .stimulus-serif {
+      font-family: 'Newsreader', Georgia, serif;
+      font-variant-numeric: lining-nums;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+      animation: fadeIn 0.28s ease-out forwards;
+    }
+    .timer-ring-progress {
+      transition: stroke-dashoffset 50ms linear, stroke 200ms ease;
+    }
+  </style>
+</head>
+<body class="bg-[#F5EFE6] text-[#2C2621] min-h-screen flex flex-col justify-between selection:bg-[#9E5A47]/20 selection:text-[#2C2621]">
+
+  <!-- Quiet Editorial Header -->
+  <header class="w-full pt-8 pb-2 px-5 sm:px-8">
+    <div class="max-w-2xl mx-auto flex items-center justify-between border-b border-[#E3D9C8] pb-4">
+      <div class="flex items-center gap-2.5">
+        <span class="w-2 h-2 rounded-full bg-[#5C6B5E]"></span>
+        <span class="heading-serif text-lg sm:text-xl font-medium tracking-wide text-[#2C2621]">Kelly's Cog Sci Study</span>
+      </div>
+      <span id="phase-badge" class="text-xs tracking-wider uppercase text-[#6A5F54]">
+        Welcome
+      </span>
+    </div>
+  </header>
+
+  <!-- Centered Parchment Card -->
+  <main class="flex-grow flex items-center justify-center px-4 py-8 sm:px-6 sm:py-12">
+    <div id="app" class="w-full max-w-2xl bg-[#FBF8F3] border border-[#E3D9C8] rounded-2xl shadow-[0_12px_36px_-12px_rgba(44,38,33,0.08)] p-7 sm:p-14 transition-all">
+      <!-- Dynamic views rendered via JS -->
+    </div>
+  </main>
+
+  <!-- Subtle Footer -->
+  <footer class="text-center text-xs text-[#6A5F54]/80 py-6 px-4">
+    Kelly's Cog Sci Study
+  </footer>
+
+  <!-- Subtle Notification Banner -->
+  <div id="toast" class="fixed bottom-5 right-5 bg-[#2C2621] text-[#FBF8F3] text-xs sm:text-sm px-4 py-3 rounded-xl shadow-md opacity-0 pointer-events-none transition-opacity duration-200 z-50"></div>
+
+  <script>
+    /**
+     * =========================================================================
+     * 0. DATAPIPE CONFIGURATION (FOR REMOTE GOOGLE DRIVE SAVING)
+     * =========================================================================
+     */
+    const DATAPIPE_EXPERIMENT_ID = "YOUR_DATAPIPE_EXPERIMENT_ID";
+    const DATAPIPE_ENDPOINT = "https://pipe.jspsych.org/api/data/";
+
+    /**
+     * =========================================================================
+     * 1. PRACTICE & EXPERIMENTAL STIMULI
+     * =========================================================================
+     */
+    const PRACTICE_TRIALS = [
+      {
+        id: "P1",
+        condition: "practice_duplicate",
+        target: "BLUE",
+        pos: 4,
+        length: 4,
+        zipf: 5.21,
+        text: "THE BRIGHT BLUE BLUE BIRD LANDED ON THE FENCE",
+        hasDuplicate: true,
+        explanation: "In this sentence, the word BLUE appeared twice in a row (BLUE BLUE), so Yes is the right choice."
+      },
+      {
+        id: "P2",
+        condition: "practice_filler",
+        target: "NONE",
+        pos: null,
+        length: null,
+        zipf: null,
+        text: "CHILDREN PLAYED HAPPILY IN THE PARK ALL AFTERNOON",
+        hasDuplicate: false,
+        explanation: "None of the words appeared twice in a row here, so No is the right choice."
+      }
+    ];
+
+    const EXPERIMENTAL_STIMULI = [
+      // Level 1: Content Words (n = 8)
+      { id: "C01", condition: "content", pos_tag: "noun", target: "DOG", pos: 3, length: 3, zipf: 5.38, text: "THE LARGE DOG DOG BARKED AT THE MAILMAN", compQuestion: null },
+      {
+        id: "C02", condition: "content", pos_tag: "noun", target: "BOOK", pos: 4, length: 4, zipf: 5.45,
+        text: "WE PUT THE BOOK BOOK ON THE WOODEN TABLE",
+        compQuestion: { prompt: "Where was the book placed?", options: ["On the wooden table", "Inside a leather bag"], correct: "On the wooden table" }
+      },
+      { id: "C03", condition: "content", pos_tag: "verb", target: "PLAY", pos: 5, length: 4, zipf: 5.62, text: "THE YOUNG BAND WILL PLAY PLAY MUSIC FOR GUESTS", compQuestion: null },
+      { id: "C04", condition: "content", pos_tag: "noun", target: "DOOR", pos: 6, length: 4, zipf: 5.51, text: "SARAH WALKED QUICKLY TOWARD THE FRONT DOOR DOOR TODAY", compQuestion: null },
+      { id: "C05", condition: "content", pos_tag: "noun", target: "CAR", pos: 4, length: 3, zipf: 5.68, text: "HE PARKED HIS CAR CAR NEAR THE MAIN ENTRANCE", compQuestion: null },
+      { id: "C06", condition: "content", pos_tag: "verb", target: "READ", pos: 5, length: 4, zipf: 5.34, text: "EVERY EVENING STUDENTS QUIETLY READ READ CHAPTERS FOR CLASS", compQuestion: null },
+      { id: "C07", condition: "content", pos_tag: "noun", target: "TREE", pos: 4, length: 4, zipf: 5.19, text: "A TALL GREEN TREE TREE STOOD BEHIND THE HOUSE", compQuestion: null },
+      { id: "C08", condition: "content", pos_tag: "verb", target: "MOVE", pos: 5, length: 4, zipf: 5.39, text: "THE WORKERS HAD TO MOVE MOVE BOXES BEFORE NOON", compQuestion: null },
+
+      // Level 2: Function Words (n = 8)
+      { id: "F01", condition: "function", pos_tag: "determiner", target: "THE", pos: 6, length: 3, zipf: 7.39, text: "THE LARGE DOG BARKED AT THE THE MAILMAN", compQuestion: null },
+      { id: "F02", condition: "function", pos_tag: "preposition", target: "WITH", pos: 5, length: 4, zipf: 6.72, text: "WE FOUND A FOLDER WITH WITH A BLUE COVER", compQuestion: null },
+      {
+        id: "F03", condition: "function", pos_tag: "preposition", target: "FROM", pos: 4, length: 4, zipf: 6.54,
+        text: "FRESH APPLES ARRIVED FROM FROM THE LOCAL ORCHARD",
+        compQuestion: { prompt: "Where did the fresh apples arrive from?", options: ["The local orchard", "A downtown bakery"], correct: "The local orchard" }
+      },
+      { id: "F04", condition: "function", pos_tag: "preposition", target: "FOR", pos: 5, length: 3, zipf: 6.89, text: "THEY PREPARED WARM SOUP FOR FOR THE TIRED HIKERS", compQuestion: null },
+      { id: "F05", condition: "function", pos_tag: "preposition", target: "INTO", pos: 4, length: 4, zipf: 6.18, text: "THE RUNNER SPRINTED INTO INTO THE CROWDED STADIUM", compQuestion: null },
+      { id: "F06", condition: "function", pos_tag: "complementizer", target: "THAT", pos: 4, length: 4, zipf: 7.12, text: "MARK BELIEVED THAT THAT THE MEETING STARTED EARLY", compQuestion: null },
+      { id: "F07", condition: "function", pos_tag: "preposition", target: "OVER", pos: 5, length: 4, zipf: 6.21, text: "DARK STORM CLOUDS GATHERED OVER OVER THE QUIET VALLEY", compQuestion: null },
+      { id: "F08", condition: "function", pos_tag: "pronoun", target: "THEY", pos: 3, length: 4, zipf: 6.65, text: "YESTERDAY MORNING THEY THEY FINISHED PAINTING THE KITCHEN", compQuestion: null },
+
+      // Fillers: No Repeated Words (n = 8)
+      { id: "N01", condition: "filler", pos_tag: "none", target: "NONE", pos: null, length: null, zipf: null, text: "THE MORNING COMMUTER TRAIN ARRIVED ON TIME TODAY", compQuestion: null },
+      {
+        id: "N02", condition: "filler", pos_tag: "none", target: "NONE", pos: null, length: null, zipf: null,
+        text: "FRESH ROASTED COFFEE SMELLED WONDERFUL IN THE KITCHEN",
+        compQuestion: { prompt: "What smelled wonderful in the kitchen?", options: ["Fresh roasted coffee", "Warm cinnamon bread"], correct: "Fresh roasted coffee" }
+      },
+      { id: "N03", condition: "filler", pos_tag: "none", target: "NONE", pos: null, length: null, zipf: null, text: "BRIGHT AUTUMN LEAVES COVERED THE NARROW GARDEN PATH", compQuestion: null },
+      { id: "N04", condition: "filler", pos_tag: "none", target: "NONE", pos: null, length: null, zipf: null, text: "THE MUSEUM GALLERY OPENED ITS DOORS AT NINE", compQuestion: null },
+      {
+        id: "N05", condition: "filler", pos_tag: "none", target: "NONE", pos: null, length: null, zipf: null,
+        text: "HEAVY WINTER SNOW BLOCKED SEVERAL MOUNTAIN ROADS OVERNIGHT",
+        compQuestion: { prompt: "What blocked several mountain roads overnight?", options: ["Heavy winter snow", "Fallen pine trees"], correct: "Heavy winter snow" }
+      },
+      { id: "N06", condition: "filler", pos_tag: "none", target: "NONE", pos: null, length: null, zipf: null, text: "CAREFUL SCIENTISTS CHECKED EVERY INSTRUMENT BEFORE THE LAUNCH", compQuestion: null },
+      { id: "N07", condition: "filler", pos_tag: "none", target: "NONE", pos: null, length: null, zipf: null, text: "SILVER FISHING BOATS RETURNED HARBORWARD AT SUNSET", compQuestion: null },
+      { id: "N08", condition: "filler", pos_tag: "none", target: "NONE", pos: null, length: null, zipf: null, text: "OUR NEIGHBOR PLANTED YELLOW TULIPS ALONG THE DRIVEWAY", compQuestion: null }
+    ];
+
+    /**
+     * =========================================================================
+     * 2. SESSION STATE
+     * =========================================================================
+     */
+    const TRIAL_TIME_LIMIT_MS = 4000;
+    const CLOCK_TICK_MS = 50;
+
+    function createRemoteSubjectId() {
+      const rand = Math.random().toString(36).substring(2, 8);
+      return `sub_${Date.now()}_${rand}`;
+    }
+
+    const state = {
+      phase: "welcome", // welcome | practice | practice_feedback | transition | main | comprehension | complete
+      participantId: "",
+      activeParticipantId: createRemoteSubjectId(),
+      trialQueue: [],
+      currentIndex: 0,
+      trialStartTime: 0,
+      trialDeadline: 0,
+      clockTimer: null,
+      pendingCompQuestion: null,
+      pendingResultIndex: null,
+      results: [],
+      uploadStatus: "idle", // idle | uploading | saved | error
+      uploadMessage: ""
+    };
+
+    const appEl = document.getElementById("app");
+    const phaseBadgeEl = document.getElementById("phase-badge");
+
+    function clearTrialTimers() {
+      if (state.clockTimer) {
+        clearInterval(state.clockTimer);
+        state.clockTimer = null;
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      toast.textContent = msg;
+      toast.classList.remove("opacity-0");
+      setTimeout(() => toast.classList.add("opacity-0"), 2600);
+    }
+
+    function setPhaseBadge(text, colorClasses = "text-[#6A5F54]") {
+      phaseBadgeEl.textContent = text;
+      phaseBadgeEl.className = `text-xs tracking-wider uppercase ${colorClasses}`;
+    }
+
+    function buildBalancedRandomQueue(items) {
+      const shuffled = [...items];
+      for (let attempt = 0; attempt < 50; attempt++) {
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        let valid = true;
+        for (let k = 2; k < shuffled.length; k++) {
+          if (
+            shuffled[k].condition === shuffled[k - 1].condition &&
+            shuffled[k].condition === shuffled[k - 2].condition
+          ) {
+            valid = false;
+            break;
+          }
+        }
+        if (valid) return shuffled;
+      }
+      return shuffled;
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function buildCSVString() {
+      if (!state.results.length) return "";
+      const headers = Object.keys(state.results[0]);
+      const csvLines = [
+        headers.join(","),
+        ...state.results.map((row) =>
+          headers
+            .map((field) => `"${String(row[field] ?? "").replace(/"/g, '""')}"`)
+            .join(",")
+        )
+      ];
+      return csvLines.join("\n");
+    }
+
+    async function sendResultsToDataPipe() {
+      if (!state.results.length) return;
+
+      if (!DATAPIPE_EXPERIMENT_ID || DATAPIPE_EXPERIMENT_ID === "YOUR_DATAPIPE_EXPERIMENT_ID") {
+        state.uploadStatus = "error";
+        state.uploadMessage = "Set DATAPIPE_EXPERIMENT_ID in the code to save directly to your Google Drive.";
+        renderCompletionScreen();
+        return;
+      }
+
+      state.uploadStatus = "uploading";
+      state.uploadMessage = "Saving your responses...";
+      renderCompletionScreen();
+
+      const safeId = (state.activeParticipantId || "participant").replace(/[^a-zA-Z0-9_-]/g, "_");
+      const filename = `${safeId}_kellys_cog_sci_study.csv`;
+      const csvString = buildCSVString();
+
+      try {
+        const res = await fetch(DATAPIPE_ENDPOINT, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "*/*"
+          },
+          body: JSON.stringify({
+            experimentID: DATAPIPE_EXPERIMENT_ID,
+            filename,
+            data: csvString
+          })
+        });
+
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(errText || `HTTP ${res.status}`);
+        }
+
+        state.uploadStatus = "saved";
+        state.uploadMessage = "Your responses have been saved.";
+      } catch (err) {
+        state.uploadStatus = "error";
+        state.uploadMessage = "We could not automatically upload your responses. Please use 'Save Backup CSV' below.";
+      }
+
+      renderCompletionScreen();
+    }
+
+    /**
+     * =========================================================================
+     * 3. PARTICIPANT VIEWS
+     * =========================================================================
+     */
+
+    function renderWelcome() {
+      clearTrialTimers();
+      state.phase = "welcome";
+      setPhaseBadge("Welcome", "text-[#6A5F54]");
+
+      appEl.innerHTML = `
+        <div class="animate-fade-in space-y-8">
+          <div class="space-y-3">
+            <h1 class="heading-serif text-4xl sm:text-5xl font-semibold tracking-tight text-[#2C2621]">
+              Kelly's Cog Sci Study
+            </h1>
+            <p class="text-base sm:text-lg text-[#6A5F54] leading-relaxed">
+              Welcome. Please complete this activity on a <strong>computer (desktop or laptop)</strong>. Your goal is to respond <strong>as quickly and accurately as possible</strong>. Each sentence gives you <strong>4.0 seconds</strong> to decide whether any word appears <strong>twice in a row</strong>.
+            </p>
+          </div>
+
+          <div class="border-t border-b border-[#E3D9C8] py-6 space-y-3 text-base text-[#2C2621]/90 leading-relaxed">
+            <p class="font-medium text-[#2C2621]">How to participate</p>
+            <p class="text-[#6A5F54]">
+              1. Read each sentence immediately and respond <strong>as fast as you can</strong> before the <strong>4.0-second</strong> clock runs out.
+            </p>
+            <p class="text-[#6A5F54]">
+              2. Select <strong>Yes</strong> if a word is printed twice in a row (for example, <em>the the</em> or <em>dog dog</em>), or <strong>No</strong> if no word repeats right after itself.
+            </p>
+            <p class="text-[#6A5F54]">
+              3. Use the buttons or your keyboard (<kbd class="px-2 py-0.5 bg-[#F5EFE6] border border-[#E3D9C8] rounded text-xs text-[#2C2621]">Y</kbd> for Yes, <kbd class="px-2 py-0.5 bg-[#F5EFE6] border border-[#E3D9C8] rounded text-xs text-[#2C2621]">N</kbd> for No; <kbd class="px-2 py-0.5 bg-[#F5EFE6] border border-[#E3D9C8] rounded text-xs text-[#2C2621]">1</kbd> or <kbd class="px-2 py-0.5 bg-[#F5EFE6] border border-[#E3D9C8] rounded text-xs text-[#2C2621]">2</kbd> on brief questions). If the clock reaches 0.0s, the trial moves on automatically.
+            </p>
+          </div>
+
+          <div class="max-w-sm">
+            <label for="pid-input" class="block text-sm font-medium text-[#2C2621] mb-2">
+              Participant / Prolific / SONA ID <span class="text-[#6A5F54] font-normal italic">(optional)</span>
+            </label>
+            <input
+              type="text"
+              id="pid-input"
+              value="${escapeHtml(state.participantId)}"
+              placeholder="Optional ID"
+              class="w-full px-4 py-3 bg-[#F5EFE6]/70 border border-[#E3D9C8] rounded-xl text-base text-[#2C2621] placeholder:text-[#6A5F54]/60 focus:outline-none focus:ring-2 focus:ring-[#5C6B5E]/35 focus:border-[#5C6B5E] transition-colors"
+            />
+          </div>
+
+          <div class="pt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <span class="text-sm text-[#6A5F54] italic">
+              Includes two short practice sentences first
+            </span>
+            <button
+              onclick="beginFromWelcome()"
+              class="w-full sm:w-auto px-9 py-3.5 rounded-xl bg-[#5C6B5E] hover:bg-[#4B594D] active:scale-[0.99] text-[#FBF8F3] font-medium text-base tracking-wide transition-all cursor-pointer"
+            >
+              Begin
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function beginFromWelcome() {
+      const inputEl = document.getElementById("pid-input");
+      const rawId = inputEl ? inputEl.value.trim() : "";
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlId = (urlParams.get("participant") || urlParams.get("id") || urlParams.get("PROLIFIC_PID") || "").trim();
+
+      state.participantId = rawId || urlId;
+      state.activeParticipantId = state.participantId || createRemoteSubjectId();
+      startPractice();
+    }
+
+    function startPractice() {
+      state.phase = "practice";
+      state.trialQueue = [...PRACTICE_TRIALS];
+      state.currentIndex = 0;
+      setPhaseBadge("Practice", "text-[#9E5A47]");
+      renderCurrentTrial();
+    }
+
+    function startMainExperiment() {
+      state.phase = "main";
+      state.trialQueue = buildBalancedRandomQueue(EXPERIMENTAL_STIMULI);
+      state.currentIndex = 0;
+      state.results = [];
+      state.pendingCompQuestion = null;
+      state.pendingResultIndex = null;
+      state.uploadStatus = "idle";
+      state.uploadMessage = "";
+      setPhaseBadge("Reading", "text-[#5C6B5E]");
+      renderCurrentTrial();
+    }
+
+    function renderCurrentTrial() {
+      clearTrialTimers();
+
+      if (state.currentIndex >= state.trialQueue.length) {
+        if (state.phase === "practice") {
+          renderPracticeComplete();
+        } else {
+          sendResultsToDataPipe();
+        }
+        return;
+      }
+
+      const trial = state.trialQueue[state.currentIndex];
+      const total = state.trialQueue.length;
+      const pct = Math.round((state.currentIndex / total) * 100);
+      const isPractice = state.phase === "practice";
+      const progressLabel = isPractice
+        ? `Practice ${state.currentIndex + 1} of ${total}`
+        : `Sentence ${state.currentIndex + 1} of ${total}`;
+
+      const radius = 18;
+      const circumference = 2 * Math.PI * radius;
+
+      appEl.innerHTML = `
+        <div class="animate-fade-in space-y-7">
+          <div>
+            <div class="flex justify-between items-center gap-4 text-xs tracking-wider uppercase text-[#6A5F54] mb-2.5">
+              <span>${progressLabel}</span>
+              <div class="flex items-center gap-3">
+                <span>${pct}%</span>
+                <div id="trial-clock-badge" class="flex items-center gap-2 bg-[#F5EFE6] border border-[#E3D9C8] rounded-full pl-1.5 pr-3 py-1 text-[#2C2621] normal-case tracking-normal">
+                  <svg class="w-6 h-6 -rotate-90" viewBox="0 0 44 44" aria-hidden="true">
+                    <circle cx="22" cy="22" r="${radius}" fill="none" stroke="#E3D9C8" stroke-width="3.5" />
+                    <circle
+                      id="clock-ring"
+                      class="timer-ring-progress"
+                      cx="22"
+                      cy="22"
+                      r="${radius}"
+                      fill="none"
+                      stroke="#5C6B5E"
+                      stroke-width="3.5"
+                      stroke-linecap="round"
+                      stroke-dasharray="${circumference.toFixed(2)}"
+                      stroke-dashoffset="0"
+                    />
+                  </svg>
+                  <span id="clock-readout" class="font-semibold text-sm tabular-nums text-[#2C2621]">4.0s</span>
+                </div>
+              </div>
+            </div>
+            <div class="w-full h-1 bg-[#E3D9C8] rounded-full overflow-hidden">
+              <div class="h-full bg-[#5C6B5E] transition-all duration-300 rounded-full" style="width: ${pct}%"></div>
+            </div>
+          </div>
+
+          <div class="min-h-[156px] flex items-center justify-center bg-[#F5EFE6]/80 border border-[#E3D9C8] rounded-xl px-6 py-10 text-center">
+            <p id="stimulus-text" class="stimulus-serif text-xl sm:text-2xl font-normal tracking-wide text-[#2C2621] leading-relaxed select-none">
+              ${escapeHtml(trial.text)}
+            </p>
+          </div>
+
+          <div class="space-y-4">
+            <p class="text-center text-base sm:text-lg text-[#2C2621]">
+              Respond as fast as you can — did a word appear twice in a row?
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 max-w-md mx-auto">
+              <button
+                onclick="handleTrialResponse('Yes')"
+                class="py-3.5 px-6 rounded-xl bg-[#5C6B5E] hover:bg-[#4B594D] active:scale-[0.99] text-[#FBF8F3] font-medium text-base transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+              >
+                <span>Yes</span>
+                <kbd class="text-xs bg-[#FBF8F3]/15 text-[#FBF8F3] px-2 py-0.5 rounded">Y</kbd>
+              </button>
+              <button
+                onclick="handleTrialResponse('No')"
+                class="py-3.5 px-6 rounded-xl bg-[#FBF8F3] hover:bg-[#F5EFE6] active:scale-[0.99] text-[#2C2621] border border-[#CBBFA9] font-medium text-base transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+              >
+                <span>No</span>
+                <kbd class="text-xs bg-[#F5EFE6] border border-[#E3D9C8] text-[#6A5F54] px-2 py-0.5 rounded">N</kbd>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      state.trialStartTime = performance.now();
+      state.trialDeadline = state.trialStartTime + TRIAL_TIME_LIMIT_MS;
+
+      state.clockTimer = setInterval(() => {
+        const now = performance.now();
+        const remainingMs = Math.max(0, state.trialDeadline - now);
+        const fractionRemaining = remainingMs / TRIAL_TIME_LIMIT_MS;
+        const secondsRemaining = (remainingMs / 1000).toFixed(1);
+
+        const readoutEl = document.getElementById("clock-readout");
+        const ringEl = document.getElementById("clock-ring");
+        const badgeEl = document.getElementById("trial-clock-badge");
+
+        if (readoutEl) {
+          readoutEl.textContent = `${secondsRemaining}s`;
+        }
+        if (ringEl) {
+          const offset = circumference * (1 - fractionRemaining);
+          ringEl.style.strokeDashoffset = offset.toFixed(2);
+          if (remainingMs <= 1200) {
+            ringEl.setAttribute("stroke", "#9E5A47");
+            if (readoutEl) readoutEl.className = "font-semibold text-sm tabular-nums text-[#9E5A47]";
+            if (badgeEl) badgeEl.classList.add("border-[#9E5A47]/50");
+          } else {
+            ringEl.setAttribute("stroke", "#5C6B5E");
+          }
+        }
+
+        if (remainingMs <= 0) {
+          clearTrialTimers();
+          handleTrialTimeout();
+        }
+      }, CLOCK_TICK_MS);
+    }
+
+    function handleTrialTimeout() {
+      if (state.phase !== "practice" && state.phase !== "main") return;
+      const trial = state.trialQueue[state.currentIndex];
+
+      if (state.phase === "practice") {
+        state.phase = "practice_feedback";
+        appEl.innerHTML = `
+          <div class="animate-fade-in space-y-6 text-center max-w-md mx-auto py-3">
+            <div class="inline-flex items-center justify-center w-11 h-11 rounded-full border border-[#9E5A47]/40 bg-[#9E5A47]/10 text-[#9E5A47] text-base font-medium">
+              ⏱
+            </div>
+            <h2 class="heading-serif text-3xl font-semibold text-[#2C2621]">
+              Time's Up
+            </h2>
+            <div class="bg-[#F5EFE6]/80 border border-[#E3D9C8] rounded-xl p-4 stimulus-serif text-base text-[#2C2621]">
+              ${escapeHtml(trial.text)}
+            </div>
+            <p class="text-base text-[#6A5F54] leading-relaxed">
+              Each sentence has a 4.0-second limit—try to read and answer as quickly as you can. ${escapeHtml(trial.explanation)}
+            </p>
+            <div class="pt-2">
+              <button
+                onclick="nextPracticeTrial()"
+                class="px-8 py-3 rounded-xl bg-[#5C6B5E] hover:bg-[#4B594D] text-[#FBF8F3] font-medium text-base transition-colors cursor-pointer"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      const hasDuplicate = trial.condition === "content" || trial.condition === "function";
+      const row = {
+        participant_id: state.activeParticipantId,
+        trial_order: state.currentIndex + 1,
+        item_id: trial.id,
+        condition: trial.condition,
+        target_word: trial.target,
+        word_length: trial.length ?? "",
+        word_position: trial.pos ?? "",
+        zipf_frequency: trial.zipf ?? "",
+        response: "TIMEOUT",
+        timed_out: 1,
+        omission_error: hasDuplicate ? 1 : "",
+        rt_ms: TRIAL_TIME_LIMIT_MS,
+        comprehension_question: trial.compQuestion ? trial.compQuestion.prompt : "",
+        comprehension_response: "",
+        comprehension_correct: ""
+      };
+
+      state.results.push(row);
+      advanceAfterMainTrial(trial, state.results.length - 1);
+    }
+
+    function advanceAfterMainTrial(trial, resultIndex) {
+      if (trial.compQuestion) {
+        state.phase = "comprehension";
+        state.pendingResultIndex = resultIndex;
+        state.pendingCompQuestion = {
+          itemId: trial.id,
+          condition: trial.condition,
+          ...trial.compQuestion
+        };
+        renderComprehensionCheck();
+      } else {
+        state.currentIndex++;
+        renderCurrentTrial();
+      }
+    }
+
+    function handleTrialResponse(choice) {
+      if (state.phase !== "practice" && state.phase !== "main") return;
+
+      clearTrialTimers();
+      const rtMs = Math.min(TRIAL_TIME_LIMIT_MS, Math.round(performance.now() - state.trialStartTime));
+      const trial = state.trialQueue[state.currentIndex];
+
+      if (state.phase === "practice") {
+        const isCorrect =
+          (trial.hasDuplicate && choice === "Yes") ||
+          (!trial.hasDuplicate && choice === "No");
+        state.phase = "practice_feedback";
+
+        appEl.innerHTML = `
+          <div class="animate-fade-in space-y-6 text-center max-w-md mx-auto py-3">
+            <div class="inline-flex items-center justify-center w-11 h-11 rounded-full border ${
+              isCorrect
+                ? "border-[#5C6B5E]/40 bg-[#5C6B5E]/10 text-[#5C6B5E]"
+                : "border-[#9E5A47]/40 bg-[#9E5A47]/10 text-[#9E5A47]"
+            } text-base font-medium">
+              ${isCorrect ? "✓" : "•"}
+            </div>
+            <h2 class="heading-serif text-3xl font-semibold text-[#2C2621]">
+              ${isCorrect ? "Well noticed" : "A quick note"}
+            </h2>
+            <div class="bg-[#F5EFE6]/80 border border-[#E3D9C8] rounded-xl p-4 stimulus-serif text-base text-[#2C2621]">
+              ${escapeHtml(trial.text)}
+            </div>
+            <p class="text-base text-[#6A5F54] leading-relaxed">
+              ${escapeHtml(trial.explanation)}
+            </p>
+            <div class="pt-2">
+              <button
+                onclick="nextPracticeTrial()"
+                class="px-8 py-3 rounded-xl bg-[#5C6B5E] hover:bg-[#4B594D] text-[#FBF8F3] font-medium text-base transition-colors cursor-pointer"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      const hasDuplicate = trial.condition === "content" || trial.condition === "function";
+      const omissionError = hasDuplicate ? (choice === "No" ? 1 : 0) : "";
+
+      const row = {
+        participant_id: state.activeParticipantId,
+        trial_order: state.currentIndex + 1,
+        item_id: trial.id,
+        condition: trial.condition,
+        target_word: trial.target,
+        word_length: trial.length ?? "",
+        word_position: trial.pos ?? "",
+        zipf_frequency: trial.zipf ?? "",
+        response: choice,
+        timed_out: 0,
+        omission_error: omissionError,
+        rt_ms: rtMs,
+        comprehension_question: trial.compQuestion ? trial.compQuestion.prompt : "",
+        comprehension_response: "",
+        comprehension_correct: ""
+      };
+
+      state.results.push(row);
+      advanceAfterMainTrial(trial, state.results.length - 1);
+    }
+
+    function nextPracticeTrial() {
+      state.phase = "practice";
+      state.currentIndex++;
+      renderCurrentTrial();
+    }
+
+    function renderPracticeComplete() {
+      state.phase = "transition";
+      setPhaseBadge("Ready", "text-[#5C6B5E]");
+
+      appEl.innerHTML = `
+        <div class="animate-fade-in space-y-6 text-center max-w-md mx-auto py-4">
+          <h2 class="heading-serif text-3xl sm:text-4xl font-semibold text-[#2C2621]">Practice Complete</h2>
+          <p class="text-base text-[#6A5F54] leading-relaxed">
+            You are ready to begin. Each sentence will appear one at a time—respond as quickly and accurately as you can.
+          </p>
+          <div class="pt-3">
+            <button
+              onclick="startMainExperiment()"
+              class="px-9 py-3.5 rounded-xl bg-[#5C6B5E] hover:bg-[#4B594D] text-[#FBF8F3] font-medium text-base transition-colors cursor-pointer"
+            >
+              Begin Reading
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderComprehensionCheck() {
+      const cq = state.pendingCompQuestion;
+      const opts = [...cq.options].sort(() => Math.random() - 0.5);
+      state.pendingCompQuestion.renderedOptions = opts;
+
+      appEl.innerHTML = `
+        <div class="animate-fade-in space-y-6 max-w-lg mx-auto py-3">
+          <p class="text-xs uppercase tracking-wider text-[#9E5A47]">
+            Brief Question
+          </p>
+          <h2 class="heading-serif text-2xl sm:text-3xl font-semibold text-[#2C2621]">
+            ${escapeHtml(cq.prompt)}
+          </h2>
+          <div class="grid grid-cols-1 gap-3.5 pt-2">
+            ${opts
+              .map(
+                (opt, idx) => `
+              <button
+                onclick="handleCompAnswer('${escapeHtml(opt).replace(/'/g, "\\'")}')"
+                class="w-full text-left px-5 py-4 rounded-xl bg-[#FBF8F3] border border-[#CBBFA9] hover:border-[#5C6B5E] hover:bg-[#F5EFE6] font-normal text-base text-[#2C2621] transition-all flex items-center justify-between gap-3 cursor-pointer"
+              >
+                <span>${escapeHtml(opt)}</span>
+                <kbd class="text-xs bg-[#F5EFE6] border border-[#E3D9C8] text-[#6A5F54] px-2 py-0.5 rounded">${idx + 1}</kbd>
+              </button>
+            `
+              )
+              .join("")}
+          </div>
+        </div>
+      `;
+    }
+
+    function handleCompAnswer(selected) {
+      const cq = state.pendingCompQuestion;
+      const isCorrect = selected === cq.correct ? 1 : 0;
+
+      if (state.pendingResultIndex !== null && state.results[state.pendingResultIndex]) {
+        state.results[state.pendingResultIndex].comprehension_response = selected;
+        state.results[state.pendingResultIndex].comprehension_correct = isCorrect;
+      }
+
+      state.pendingCompQuestion = null;
+      state.pendingResultIndex = null;
+      state.phase = "main";
+      state.currentIndex++;
+      renderCurrentTrial();
+    }
+
+    function renderCompletionScreen() {
+      clearTrialTimers();
+      state.phase = "complete";
+      setPhaseBadge("Completed", "text-[#5C6B5E]");
+
+      const statusText =
+        state.uploadStatus === "uploading"
+          ? "Saving your responses..."
+          : state.uploadStatus === "saved"
+          ? "Your responses have been saved."
+          : state.uploadMessage || "Thank you for participating.";
+
+      appEl.innerHTML = `
+        <div class="animate-fade-in space-y-7 text-center max-w-md mx-auto py-5">
+          <div class="inline-flex items-center justify-center w-12 h-12 rounded-full border border-[#5C6B5E]/40 bg-[#5C6B5E]/10 text-[#5C6B5E] text-xl">
+            ${state.uploadStatus === "uploading" ? "…" : "✓"}
+          </div>
+          <div class="space-y-3">
+            <h2 class="heading-serif text-3xl sm:text-4xl font-semibold text-[#2C2621]">Thank You</h2>
+            <p class="text-base text-[#6A5F54] leading-relaxed">
+              Thank you for participating in <strong>Kelly's Cog Sci Study</strong>. ${escapeHtml(statusText)}
+            </p>
+          </div>
+
+          <div class="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3.5">
+            ${
+              state.uploadStatus === "error"
+                ? `
+              <button
+                onclick="downloadBackupCSV()"
+                class="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-[#5C6B5E] hover:bg-[#4B594D] text-[#FBF8F3] font-medium text-base transition-colors cursor-pointer"
+              >
+                Save Backup CSV
+              </button>
+            `
+                : ""
+            }
+            <button
+              onclick="startNextSession()"
+              class="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-[#FBF8F3] hover:bg-[#F5EFE6] text-[#2C2621] border border-[#CBBFA9] font-medium text-base transition-colors cursor-pointer"
+            >
+              Start Again
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function downloadBackupCSV() {
+      const csvString = buildCSVString();
+      if (!csvString) return;
+      const safeId = (state.activeParticipantId || "participant").replace(/[^a-zA-Z0-9_-]/g, "_");
+      const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `${safeId}_kellys_cog_sci_study.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showToast(`Saved ${safeId}_kellys_cog_sci_study.csv`);
+    }
+
+    function startNextSession() {
+      state.participantId = "";
+      state.activeParticipantId = createRemoteSubjectId();
+      state.uploadStatus = "idle";
+      state.uploadMessage = "";
+      renderWelcome();
+    }
+
+    /**
+     * =========================================================================
+     * 4. KEYBOARD SHORTCUTS & INITIALIZATION
+     * =========================================================================
+     */
+    document.addEventListener("keydown", (e) => {
+      if (document.activeElement && ["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement.tagName)) {
+        return;
+      }
+
+      if (state.phase === "practice" || state.phase === "main") {
+        const key = e.key.toLowerCase();
+        if (key === "y") {
+          handleTrialResponse("Yes");
+        } else if (key === "n") {
+          handleTrialResponse("No");
+        }
+      } else if (state.phase === "comprehension" && state.pendingCompQuestion && state.pendingCompQuestion.renderedOptions) {
+        const opts = state.pendingCompQuestion.renderedOptions;
+        if (e.key === "1" && opts[0]) {
+          handleCompAnswer(opts[0]);
+        } else if (e.key === "2" && opts[1]) {
+          handleCompAnswer(opts[1]);
+        }
+      }
+    });
+
+    renderWelcome();
+  </script>
+</body>
+</html>
